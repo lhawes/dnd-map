@@ -1,62 +1,43 @@
-const obNoContext = function (ctx, boxL, x, y) {
-  x = x * boxL;
-  y = y * boxL;
+const boxMaker = function (config, x, y) {
+  x = x * config.boxL;
+  y = y * config.boxL;
+  const ctx = config.ctx;
+  const wallheight = config.wallHeight;
+  const boxL = config.boxL;
 
+  // top
   ctx.fillStyle ='rgb(200, 200, 200, 1)';
   ctx.fillRect(x, y, boxL, boxL);
-  ctx.fillRect(x - 10, y - 10, boxL, boxL);
+  ctx.fillRect(x - wallheight, y - wallheight, boxL, boxL);
 
+  // left wall
   ctx.fillStyle ='rgb(100, 100, 100, 1)';
   ctx.beginPath();
   ctx.moveTo(x + boxL, y + boxL);
-  ctx.lineTo(x + boxL - 10, y + boxL - 10);
-  ctx.lineTo(x - 10, y + boxL - 10);
+  ctx.lineTo(x + boxL - wallheight, y + boxL - wallheight);
+  ctx.lineTo(x - wallheight, y + boxL - wallheight);
   ctx.lineTo(x , y + boxL);
   ctx.closePath();
   ctx.fill();
 
+  // right wall
   ctx.fillStyle ='rgb(50, 50, 50, 1)';
   ctx.beginPath();
   ctx.moveTo(x + boxL, y + boxL);
-  ctx.lineTo(x + boxL - 10, y + boxL - 10);
-  ctx.lineTo(x + boxL - 10, y - 10);
+  ctx.lineTo(x + boxL - wallheight, y + boxL - wallheight);
+  ctx.lineTo(x + boxL - wallheight, y - wallheight);
   ctx.lineTo(x + boxL, y);
-
   ctx.closePath();
   ctx.fill();
 }
 
 const map = [
-  {x:1 , y:1 },
-  {x:4 , y:3 },
-  {x:4 , y:2 },
-  {x:7 , y:0 },
-  {x:8 , y:0 },
-  {x:7 , y:2 },
-  {x:8 , y:2 },
-  {x:7 , y:3 },
-  {x:8 , y:3 },
-  {x:10 , y:2 },
-];
-
-const sortMap = function(map) {
-  return map.sort((ob1,ob2) => {
-    if (ob1.x > ob2.x) {
-        return 1;
-    } else if (ob1.x < ob2.x) { 
-        return -1;
-    }
-
-    // Else go to the 2nd item
-    if (ob1.y < ob2.y) { 
-        return -1;
-    } else if (ob1.y > ob2.y) {
-        return 1
-    } else { // nothing to split them
-        return 0;
-    }
-  })
-}
+  [{type: 'half'}, null, null, null, null, null, null, null, null, {type: 'full'}],
+  [null, {type: 'half'}, null, null, null, null, null, null, null, null],
+  [null, null, null, {type: 'half'}, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null],
+  [{type: 'half'}, null, null, null, null, null, null, null, null, {type:'full'}],
+]
 
 function draw() {
   var canvas = document.getElementById('canvas');
@@ -66,9 +47,9 @@ function draw() {
   const height = "400";
   const boxL = 25;
   
-  const ob = function (x, y) {
-    return obNoContext(ctx, boxL, x, y);
-  }
+  const halfBox = (x, y) => boxMaker({ wallHeight: 10, ctx: ctx, boxL: boxL}, x, y);
+  const fullBox = (x, y) => boxMaker({ wallHeight: 20, ctx: ctx, boxL: boxL}, x, y);
+  const flat = (x, y) => boxMaker({ wallHeight: 0, ctx: ctx, boxL: boxL}, x, y);
   
   
   // transform to isometric
@@ -76,21 +57,30 @@ function draw() {
   ctx.rotate(45*Math.PI/180)
  
   //build grid
-  for (var i = 0; i < height/boxL; i++) {
-    for (var j = 0; j < width/boxL; j++) {
-      ctx.strokeRect(j * boxL, (i - height/(boxL*2)) * boxL, boxL, boxL)  
-      
+  for (var y = 0; y < map.length; y++) {
+    for (var x = 0; x < map[y].length; x++) {
+
+      const tile = map[y][x];
+      if (tile) {
+
+          let fn;
+          switch(tile.type) {
+            case 'full':
+              fn = fullBox;
+              break;
+            case 'half':
+              fn = halfBox;
+              break;
+            default:
+              fn = halfBox;
+          }
+          fn(x, y);
+      } else {
+        flat(x, y);
+        ctx.strokeRect(x * boxL, y * boxL, boxL, boxL);
+      }
     }
   }
-
-  
-  ob(1, 1);
-  
-  sortMap(map).forEach((tile) => {
-    ob(tile.x, tile.y);
-  })
-
-
   
 }
 
